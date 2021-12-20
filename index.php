@@ -15,8 +15,12 @@ interface A {
   
 }
 
+$name = new Laravel\Test\Name();
+$name->name = 'zjb';
+var_dump($name);
 
 $container = new Laravel\Illuminate\Contaner();
 $obj = $container->getInstance("Laravel\\Test\\File");
 var_dump($obj);
-$obj = $container->getInstance("A");
+$obj = $container->getInstance("Laravel\\Test\\File",["name"=>'123'  ]);
+var_dump($obj);
