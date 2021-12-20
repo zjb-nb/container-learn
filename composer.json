@@ -1,0 +1,13 @@
+{
+    "name": "help/laravel-container",
+    "autoload": {
+        "classmap": ["package"]
+    },
+    "authors": [
+        {
+            "name": "zjb",
+            "email": "1715776882@qq.com"
+        }
+    ],
+    "require": {}
+}
