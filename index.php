@@ -12,11 +12,7 @@ require_once __DIR__."/vendor/autoload.php";
 
 
 class Log {
-  public $num ;
-  public function __construct(MyTest $test)
-  {
-    $this->num =$test;
-  }
+ 
 }
 
 class Test implements MyTest{
@@ -28,10 +24,9 @@ interface MyTest{}
 $test = new Test();var_dump($test);
 
 $container =  \Laravel\Illuminate\Container::getInstance();
-$container->bind('ddd',function() use($test) {
-  return $test;
-} );
-// $container->instance('ddd',$test);
+$container->extends(Log::class,function(){
+  return new Test();
+});
 
-var_dump( $container->make('ddd') );
+var_dump( $container->make(Log::class) );
 

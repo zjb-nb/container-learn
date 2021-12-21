@@ -44,6 +44,8 @@ class Container {
   //判断类是否被解析过
   protected $resolved = [];
 
+  protected $extends = [];
+
   //对外暴露类，用于生成实例
   public function make(string $class, array $parameter=[]){
     return $this->resolve($class,$parameter);
@@ -65,6 +67,12 @@ class Container {
     }else{
       $obj= $this->make($concrete);
     }
+
+    foreach($this->getExtends($abstract) as $closure ){
+      //第一个参数是实例
+      $obj = $closure($obj,$this);
+    }
+
     if($this->isShared($abstract) ){
       $this->instances[$abstract] = $obj;
     }
@@ -72,6 +80,11 @@ class Container {
     $this->resolved[$abstract] = true;
     array_pop($this->with);
     return $obj;
+  }
+
+  protected function getExtends($abstract):array {
+    $abstract = $this->getAlias($abstract);
+    return $this->extends[$abstract] ?? [];
   }
 
   protected function isShared(string $abstract){
@@ -95,6 +108,8 @@ class Container {
     }
     return static::$instance;
   } 
+
+
 
   /**
    * 获取对应抽象类型的实例名称
@@ -348,6 +363,29 @@ class Container {
   //将abstract绑定到instance，即注入实例到容器里面
   public function singleton(string $abstract,$concrete=null){
     $this->bind($abstract,$concrete,true);
+  }
+
+  /**
+   * 顾名思义，扩展生成实例，下面是直接暴力替换
+   * $container->extends(Log::class,function(){
+   * return new Test();
+   * });
+   * 
+   */
+  public function extends(string $abstract,Closure $closure){
+    $abstract = $this->getAlias($abstract);
+    //instance保存的是容器对外保管的实例
+    if( isset($this->instances[$abstract]) ){
+      //即用回调函数覆盖
+      $this->instances[$abstract] = $closure($this->instances[$abstract],$this);
+      $this->reBound($abstract);
+    }else {
+      $this->extends[$abstract][] = $closure;
+      //判断是否被解析过，被解析过就意味着又一次绑定
+      if( $this->resolved($abstract) ){
+        $this->reBound($abstract);
+      }
+    }
   }
 
   //判断实例是否被解析
