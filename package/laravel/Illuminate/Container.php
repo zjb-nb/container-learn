@@ -9,6 +9,7 @@
  */
 namespace Laravel\Illuminate;
 
+use ArrayAccess;
 use Closure;
 use Exception;
 use ReflectionClass;
@@ -19,7 +20,7 @@ use Laravel\Illuminate\Exception\BindException;
 use Laravel\Illuminate\Exception\LogicException;
 use ReflectionParameter;
 
-class Container {
+class Container implements ArrayAccess {
   //构建栈
   protected $buildstack= [];
   
@@ -50,7 +51,33 @@ class Container {
   public function make(string $class, array $parameter=[]){
     return $this->resolve($class,$parameter);
   }
+  //判断是否被绑定过
+  public function offsetExists(mixed $offset): bool {
+     return $this->bound($offset);
+  }
 
+  public function offsetGet(mixed $offset): mixed {
+    return $this->make($offset);
+  }
+  public function offsetSet(mixed $offset, mixed $value): void {
+    $this->bind($offset,$value instanceof Closure?$value:function ()use($value){
+      return $value;
+    });
+  }
+  public function offsetUnset(mixed $offset): void {
+    unset($this->bindings[$offset],$this->instances[$offset],$this->resolved[$offset] );
+  }
+
+  public function __get($key) {
+    return $this[$key];
+  }
+  public function __set($key,$value){
+    $this[$key] = $value;
+  }
+  //判断是否是别名
+  public function isAlias(string $abstract):bool {
+    return isset($this->aliases[$abstract]);
+  }
 
   protected function resolve(string $abstract,array $parameter=[]) {
     $abstract = $this->getAlias($abstract);
@@ -298,7 +325,8 @@ class Container {
   }
   //判断 abstract是否被绑定过
   protected function bound(string $abstract):bool{
-    return isset($this->instances[$abstract]);
+    return isset($this->instances[$abstract]) || isset($this->bindings[$abstract]) ||
+     $this->isAlias($abstract);
   }
   /**
    * 监听是否被重复绑定
@@ -386,6 +414,10 @@ class Container {
         $this->reBound($abstract);
       }
     }
+  }
+  
+  public function call(){
+    //todo
   }
 
   //判断实例是否被解析
