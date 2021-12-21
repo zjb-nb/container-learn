@@ -28,7 +28,7 @@ class Container {
   //映射关系 别名 => 别名/真实类名
   protected $aliases = [];
 
-  //绑定上下文映射关系
+  //绑定上下文映射关系 ['Log'=>['Sys接口类'=>'DB接口实现类']]
   protected $contextual = [];
   //对外暴露类，用于生成实例
   public function getInstance(string $class,array $parameter=[]) {
@@ -184,7 +184,7 @@ class Container {
     }
     throw new BindException("类[$class]不能被实例化",0);
   }
-
+  //绑定接口到实现类的映射 container->when(LOG)->needs(Sys)->give(DB)
   public function when(string $class):ContextualBindingBuilder{
     $aliases = [];
     foreach(Arr::wrap($class) as $c){
