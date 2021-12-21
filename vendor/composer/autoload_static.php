@@ -8,8 +8,12 @@ class ComposerStaticInit2b3116da4a4004b757a7ad4af95d2b78
 {
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
-        'Laravel\\Illuminate\\Contaner' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Container.php',
+        'Laravel\\Illuminate\\Abstracts\\ContextualBindingBuilderAbstract' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Abstracts/ContextualBindingBuilderAbstract.php',
+        'Laravel\\Illuminate\\Container' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Container.php',
+        'Laravel\\Illuminate\\ContextualBindingBuilder' => __DIR__ . '/../..' . '/package/laravel/Illuminate/ContextualBindingBuilder.php',
         'Laravel\\Illuminate\\Exception\\BindException' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Exception/BindException.php',
+        'Laravel\\Illuminate\\Exception\\LogicException' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Exception/LogicException.php',
+        'Laravel\\Illuminate\\Support\\Arr' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Support/Arr.php',
         'Laravel\\Test\\File' => __DIR__ . '/../..' . '/package/laravel/test/File.php',
         'Laravel\\Test\\Name' => __DIR__ . '/../..' . '/package/laravel/test/Name.php',
     );

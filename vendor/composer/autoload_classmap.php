@@ -7,8 +7,12 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
-    'Laravel\\Illuminate\\Contaner' => $baseDir . '/package/laravel/Illuminate/Container.php',
+    'Laravel\\Illuminate\\Abstracts\\ContextualBindingBuilderAbstract' => $baseDir . '/package/laravel/Illuminate/Abstracts/ContextualBindingBuilderAbstract.php',
+    'Laravel\\Illuminate\\Container' => $baseDir . '/package/laravel/Illuminate/Container.php',
+    'Laravel\\Illuminate\\ContextualBindingBuilder' => $baseDir . '/package/laravel/Illuminate/ContextualBindingBuilder.php',
     'Laravel\\Illuminate\\Exception\\BindException' => $baseDir . '/package/laravel/Illuminate/Exception/BindException.php',
+    'Laravel\\Illuminate\\Exception\\LogicException' => $baseDir . '/package/laravel/Illuminate/Exception/LogicException.php',
+    'Laravel\\Illuminate\\Support\\Arr' => $baseDir . '/package/laravel/Illuminate/Support/Arr.php',
     'Laravel\\Test\\File' => $baseDir . '/package/laravel/test/File.php',
     'Laravel\\Test\\Name' => $baseDir . '/package/laravel/test/Name.php',
 );

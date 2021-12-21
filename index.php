@@ -9,18 +9,22 @@
  */
 require_once __DIR__."/vendor/autoload.php";
 
-// var_dump(new Laravel\Test\File( new \Laravel\Test\Name() ));die;
-
-interface A {
-  
+class Log {
+  protected $sys;
+  public function __construct(Sys $log)
+  {
+    $this->sys = $log;
+  }
 }
 
-$name = new Laravel\Test\Name();
-$name->name = 'zjb';
-var_dump($name);
+interface Sys{}
 
-$container = new Laravel\Illuminate\Contaner();
-$obj = $container->getInstance("Laravel\\Test\\File");
-var_dump($obj);
-$obj = $container->getInstance("Laravel\\Test\\File",["name"=>'123'  ]);
-var_dump($obj);
+class DB implements Sys {
+
+}
+
+$container = new \Laravel\Illuminate\Container();
+$db = new Db();
+$container->when(Log::class)->needs(Sys::class)->give(DB::class);
+// var_dump($container);
+var_dump($container->getInstance(Log::class ));

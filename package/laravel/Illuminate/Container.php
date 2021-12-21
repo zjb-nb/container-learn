@@ -12,19 +12,59 @@ namespace Laravel\Illuminate;
 use Exception;
 use ReflectionClass;
 use ReflectionException;
+use Laravel\Illuminate\Support\Arr;
+use Laravel\Illuminate\ContextualBindingBuilder;
 use Laravel\Illuminate\Exception\BindException;
+use Laravel\Illuminate\Exception\LogicException;
 use ReflectionParameter;
 
-class Contaner {
+class Container {
   //构建栈
   protected $buildstack= [];
+  
+  //外部依赖队列
   protected $with= [];
+  
+  //映射关系 别名 => 别名/真实类名
+  protected $aliases = [];
 
+  //绑定上下文映射关系
+  protected $contextual = [];
   //对外暴露类，用于生成实例
   public function getInstance(string $class,array $parameter=[]) {
+    $class = $this->getAlias($class);
+    $concrete= $this->getConcrete($class);
     $this->with[] = $parameter;
-    return $this->resolve($class);
+    return $this->resolve($concrete);
   }
+
+  // protected function isBuildable(string $concrete,string $abstract):bool{
+  //   return $concrete===$abstract;
+  // }
+
+  /**
+   * 获取对应抽象类型的实例名称
+   */
+  protected function getConCrete(string $abstract):string{
+    //如果有抽象类/接口 对应的实例的实现类 则返回该实现类
+    if( !is_null( $get=$this->getContextualConcrete($abstract) ) ){
+      return $get;
+    }
+    return $abstract;
+  }
+
+  protected function getContextualConcrete(string $abstract){
+    if( !is_null($find = $this->findContextualBindings($abstract)) ){
+      return $find;
+    }
+    return null;
+  }
+
+  protected function findContextualBindings(string $abstract){
+    return $this->contextual[end($this->buildstack)][$abstract] ?? null;
+  }
+
+
   /**
    * 1.传入的依赖想要被外部覆盖怎么办？ 
    * getInstance("Laravel\\Test\\File",["Laravel\\Test\\Name"=>$name])
@@ -53,6 +93,7 @@ class Contaner {
     }
     //解析构造函数中的参数依赖
     $param = $class_construct->getParameters();
+
     // 抛出异常，并将其移除构建栈
     //以为构造函数的依赖(interface/abstract/private __construct)不能被实例化，该类也不能被实例化
     try{
@@ -82,12 +123,28 @@ class Contaner {
         $res[] =  $this->resolvePrimitive($param);
         continue;
       }
-      $res[] = $this->resolve( $param->getClass()->name );
+      
+
+      $res[] = $this->getInstance( $param->getClass()->name );
 
     }
     return $res;
   }
-  
+  //设置别名
+  public function setAliase(string $abstract,string $alias){
+    if($abstract == $alias){
+      throw new LogicException("[$abstract] is [$alias] itself");
+    }
+    $this->aliases[$alias] = $abstract;
+  }
+  //递归获取真实类名
+  protected function getAlias(string $abstract){
+    if(!isset($this->aliases[$abstract])){
+      return $abstract;
+    }
+    return $this->getAlias( $this->aliases[$abstract] );
+  } 
+
   //外部依赖覆盖，我们这里规定外部依赖是以键值对的形式传入
   // 例如['Name'=>new Name(123)]，所以获取名很重要
   //getInstance("Laravel\\Test\\File",["name"=>$name])
@@ -127,6 +184,25 @@ class Contaner {
     }
     throw new BindException("类[$class]不能被实例化",0);
   }
+
+  public function when(string $class):ContextualBindingBuilder{
+    $aliases = [];
+    foreach(Arr::wrap($class) as $c){
+      $aliases[] = $this->getAlias($c);
+    }
+    //构建上下文实例
+    return new ContextualBindingBuilder($this,$aliases);
+  }
+  //绑定上下文映射关系
+  //['Log'=>['Sys(interface)'=>'DB'(interface的实现)]]
+  /**
+   * @concrete 类名
+   * @abstracts 依赖 interface
+   * @implementation 接口的实现类
+   */
+  public function addContextualBinding($concrete,$abstracts,$implemention):void{
+    $this->contextual[$concrete][$this->getAlias($abstracts)] = $implemention;
+  }
 }
 
 /**
@@ -134,4 +210,11 @@ class Contaner {
  * 1.如果传入的依赖没有约束，那么使用构造函数获取构造参数时，会把参数变量名作为类的名称去实例化抛出异常，
  * 我们引入参数with，来覆盖未作约定的参数
  * 2.如果传入的是员数据类型或其他类型，我们引入resolvePrimitive，如果形参有默认值则赋予默认值，否则抛出异常
+ * 3.当外部依赖为接口时，实例化会报出无法被实例化的异常，此时我们对外提供when方法，
+ * 引入外部类ContextualBindingBuilder提供needs和give接口来绑定interface和实例化类的映射关系，
+ * 当我们实例化类时会先判断该抽象类有没有实例化的类来解决问题
+ * 
+ * 别名：
+ * 1.引入别名，存放在aliases中
+ * 
  */
