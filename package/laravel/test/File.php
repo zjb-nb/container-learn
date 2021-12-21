@@ -4,10 +4,10 @@ use Laravel\Test\Name;
 class File {
   private $name;
   private $names;
-  public function __construct(string $name='hhh',Name $names)
+  public function __construct(Name $name)
   {
     $this->name=$name;
-    $this->names=$names;
+   
   }
 
 }

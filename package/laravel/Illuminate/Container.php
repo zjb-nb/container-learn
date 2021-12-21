@@ -9,6 +9,7 @@
  */
 namespace Laravel\Illuminate;
 
+use Closure;
 use Exception;
 use ReflectionClass;
 use ReflectionException;
@@ -30,25 +31,82 @@ class Container {
 
   //绑定上下文映射关系 ['Log'=>['Sys接口类'=>'DB接口实现类']]
   protected $contextual = [];
+  
+  //存放实例
+  protected static $instance = null;
+  //托管外部实例
+  protected $instances = [];
+  //托管监听器回调
+  protected $reBoundCallBack = []; 
+  
+  //通过bind方法绑定 ['ddd'=>['concrete'=>'']]
+  protected $bindings = [];
+  //判断类是否被解析过
+  protected $resolved = [];
+
   //对外暴露类，用于生成实例
-  public function getInstance(string $class,array $parameter=[]) {
-    $class = $this->getAlias($class);
-    $concrete= $this->getConcrete($class);
-    $this->with[] = $parameter;
-    return $this->resolve($concrete);
+  public function make(string $class, array $parameter=[]){
+    return $this->resolve($class,$parameter);
   }
 
-  // protected function isBuildable(string $concrete,string $abstract):bool{
-  //   return $concrete===$abstract;
-  // }
+
+  protected function resolve(string $abstract,array $parameter=[]) {
+    $abstract = $this->getAlias($abstract);
+    //如果是之前就交给容器管理且没有进行上下文绑定，当用instance时传入，若存过则直接返回
+    if( isset($this->instances[$abstract]) && is_null($this->getContextualConcrete($abstract)) ){
+      return $this->instances[$abstract];
+    }
+    //获取抽象类对应的实例
+    $concrete= $this->getConcrete($abstract);
+    $this->with[] = $parameter;
+    // 判断是否可实例化 | 接口
+    if( $this->isBuildable($abstract,$concrete )  ){
+      $obj= $this->build($concrete);
+    }else{
+      $obj= $this->make($concrete);
+    }
+    if($this->isShared($abstract) ){
+      $this->instances[$abstract] = $obj;
+    }
+
+    $this->resolved[$abstract] = true;
+    array_pop($this->with);
+    return $obj;
+  }
+
+  protected function isShared(string $abstract){
+    return isset($this->instances[$abstract]) || ( 
+      isset($this->bindings[$abstract]) && $this->bindings[$abstract]['share']
+    );
+  }
+
+  protected function isBuildable($abstract,$concrete):bool{
+    return $abstract===$concrete || $concrete instanceof Closure;
+  }
+
+  /**
+   * 但是一般一个类在应用程序中只会实例化一次，所以需要我们把他做成单例
+   * 由于PHP是单线程应用，所以是现场安全的
+   * 但是如果使用多线程扩展，就需要注意使用double check来获取单例
+   */
+  public static function getInstance():Container{
+    if(is_null(static::$instance)){
+      static::$instance = new static;
+    }
+    return static::$instance;
+  } 
 
   /**
    * 获取对应抽象类型的实例名称
    */
-  protected function getConCrete(string $abstract):string{
-    //如果有抽象类/接口 对应的实例的实现类 则返回该实现类
+  protected function getConCrete(string $abstract){
+    //如果有抽象类/接口 对应的实例的实现类即绑定过上下文关系 则返回该实现类
     if( !is_null( $get=$this->getContextualConcrete($abstract) ) ){
       return $get;
+    }
+    //如果是通过bind绑定则改为执行回调函数
+    if(isset($this->bindings[$abstract])){
+      return $this->bindings[$abstract]['concrete'];
     }
     return $abstract;
   }
@@ -71,8 +129,11 @@ class Container {
    * getInstance("Laravel\\Test\\File",["name"=>$name])
    * 2.当传入的不是依赖而是基础类型怎么办？__construct(string $a)即参数不是一个依赖
    */
-  //利用反射类生成实例
-  protected function resolve(string $class) {
+  //利用反射类构造实例
+  protected function build( $class) {
+    if( $class instanceof Closure ){
+      return $class($this,$this->getLastParameteOverride());
+    }
     //**判断是否可实例化**
     //如果类实例化出错
     try{
@@ -97,7 +158,7 @@ class Container {
     // 抛出异常，并将其移除构建栈
     //以为构造函数的依赖(interface/abstract/private __construct)不能被实例化，该类也不能被实例化
     try{
-      $res = $this->depenedence($param);
+      $res = $this->resolveDepenedence($param);
     }catch(BindException $e){
       array_pop($this->buildstack);
       throw $e;
@@ -107,7 +168,7 @@ class Container {
     return $reflection_class->newInstance(...$res);
   }
   //解析构造函数的依赖
-  protected function depenedence(array $params){
+  protected function resolveDepenedence(array $params){
     $res = [];
     foreach($params as $param) {
       // param Instanceof ReflectionParameter
@@ -125,7 +186,7 @@ class Container {
       }
       
 
-      $res[] = $this->getInstance( $param->getClass()->name );
+      $res[] = $this->make( $param->getClass()->name );
 
     }
     return $res;
@@ -145,10 +206,12 @@ class Container {
     return $this->getAlias( $this->aliases[$abstract] );
   } 
 
-  //外部依赖覆盖，我们这里规定外部依赖是以键值对的形式传入
-  // 例如['Name'=>new Name(123)]，所以获取名很重要
-  //getInstance("Laravel\\Test\\File",["name"=>$name])
-  //但是with也是一颗树
+  /**
+   * 外部依赖覆盖，我们这里规定外部依赖是以键值对的形式传入
+   *  例如['Name'=>new Name(123)]，所以获取名很重要
+   *getInstance("Laravel\\Test\\File",["name"=>$name])
+   *但是with也是一颗树
+   */
   protected function hasParameterOver(ReflectionParameter $parameter):bool {
     return array_key_exists(
       $parameter->getName(),$this->getLastParameteOverride()
@@ -203,6 +266,110 @@ class Container {
   public function addContextualBinding($concrete,$abstracts,$implemention):void{
     $this->contextual[$concrete][$this->getAlias($abstracts)] = $implemention;
   }
+
+  /**
+   * 之前都是由容器来实例化类，如果想要让容器管理已经实例化好的类怎么办
+   */
+  public function instance(string $abstract,$concrete){
+    //这里我们约定不适用别名
+    $abstract = $this->getAlias($abstract);
+
+    //判断是否曾经被绑定过
+    if( $this->bound($abstract) ) {
+      //如果被绑定过则执行监听器
+      $this->reBound($abstract);
+    }
+    $this->instances[$abstract] = $concrete;
+  }
+  //判断 abstract是否被绑定过
+  protected function bound(string $abstract):bool{
+    return isset($this->instances[$abstract]);
+  }
+  /**
+   * 监听是否被重复绑定
+   */
+  public function reBinding(string $abstract,Closure $callback){
+    $this->reBoundCallBack[$abstract=$this->getAlias($abstract)][] = $callback;
+    if( $this->bound($abstract) ){
+      return $this->make($abstract);
+    }
+  }
+  //执行重复绑定的监听器，即执行回调函数
+  protected function reBound(string $abstract){
+    $instance = $this->make($abstract);
+    foreach($this->getReBoundCallbacks($abstract) as $callback ){
+      call_user_func($callback,$this,$instance);
+    }
+  }
+  //获取对应的所有的回调
+  protected function getReBoundCallbacks(string $abstract):array{
+    return isset( $this->reBoundCallBack[$abstract] )?$this->reBoundCallBack[$abstract]:[];
+  }
+  /**
+   * 重复绑定监听器执行target的method方法
+   * 也就是说额外给Log类的重复绑定时，增加一个回调函数，这个回调函数是其他类的某个方法
+   * $container->refresh('ddd',new Test(),'sayTest');
+   * (实例，目标实例，目标实例对应的方法)
+   */
+  public function refresh(string $abstract,$target,$method){
+    //这是因为
+    $this->reBinding($abstract,function($container,$instance) use($target,$method){
+      $target->{$method}($instance);
+    });
+  }
+  
+  /**
+   * 绑定实例与闭包，并在make时返回闭包执行的结果
+   * 如果通过 bind绑定则不能通过 instance绑定
+   */
+  public function bind(string $abstract,$concrete = null ,bool $share=false){
+    $this->dropBinding($abstract);
+    if(is_null($concrete)){
+       $concrete=$abstract;
+    }
+    
+    if( !$concrete instanceof Closure ){
+      $concrete = $this->getClosure($abstract,$concrete);
+    }
+    //若concrete是一个回调函数则建立键值对
+    $this->bindings[$abstract] =compact('concrete','share');
+    //判断是否被解析过
+    if( $this->resolved($abstract) ){
+      $this->reBound($abstract);
+    }
+
+  }
+  //如果没有被绑定 (instance)过才会被执行并不会被覆盖
+  public function bindIf(string $abstract,$concrete=null,bool $share=false):void{
+    if( !$this->bound($abstract)  ){
+      $this->bind($abstract,$concrete,$share);
+    }
+  }
+  //将abstract绑定到instance，即注入实例到容器里面
+  public function singleton(string $abstract,$concrete=null){
+    $this->bind($abstract,$concrete,true);
+  }
+
+  //判断实例是否被解析
+  protected function resolved(string $abstract){
+    $abstract = $this->getAlias($abstract);
+    return isset($this->resolved[$abstract] ) || isset($this->instances[$abstract] );  
+  }
+  //解绑
+  protected function dropBinding(string $abstract):void {
+    //使用bind绑定时不能是instance绑定也不能是别名
+    unset( $this->instances[$abstract],$this->aliases[$abstract] );
+  }
+
+  protected function getClosure(string $abstract,$concrete):Closure{
+    return function(Container $container,$parameters=[]) use ($abstract,$concrete){
+      if( $abstract===$concrete ){
+        return $this->make($concrete);
+      }
+      
+      $container->resolve($concrete,$parameters);
+    };
+  }
 }
 
 /**
@@ -214,7 +381,16 @@ class Container {
  * 引入外部类ContextualBindingBuilder提供needs和give接口来绑定interface和实例化类的映射关系，
  * 当我们实例化类时会先判断该抽象类有没有实例化的类来解决问题
  * 
+ * 
  * 别名：
  * 1.引入别名，存放在aliases中
+ * 
+ * 单例
+ * 1.引入getInstance实现单例模式
+ * 
+ * 托管外部实例
+ * 1.引入instance让容器能托管外部实例，且在make时将对应的直接返回
+ * 2.当重复绑定时，我们使用reBinding将重复绑定发生的行为交给使用者决定
+ * 
  * 
  */

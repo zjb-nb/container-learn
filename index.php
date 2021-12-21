@@ -9,22 +9,29 @@
  */
 require_once __DIR__."/vendor/autoload.php";
 
+
+
 class Log {
-  protected $sys;
-  public function __construct(Sys $log)
+  public $num ;
+  public function __construct(MyTest $test)
   {
-    $this->sys = $log;
+    $this->num =$test;
   }
 }
 
-interface Sys{}
-
-class DB implements Sys {
-
+class Test implements MyTest{
+  public function sayTest(){echo "hi\n";}
 }
 
-$container = new \Laravel\Illuminate\Container();
-$db = new Db();
-$container->when(Log::class)->needs(Sys::class)->give(DB::class);
-// var_dump($container);
-var_dump($container->getInstance(Log::class ));
+interface MyTest{}
+
+$test = new Test();var_dump($test);
+
+$container =  \Laravel\Illuminate\Container::getInstance();
+$container->bind('ddd',function() use($test) {
+  return $test;
+} );
+// $container->instance('ddd',$test);
+
+var_dump( $container->make('ddd') );
+
