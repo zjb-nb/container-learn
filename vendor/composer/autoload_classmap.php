@@ -13,6 +13,13 @@ return array(
     'Laravel\\Illuminate\\Exception\\BindException' => $baseDir . '/package/laravel/Illuminate/Exception/BindException.php',
     'Laravel\\Illuminate\\Exception\\LogicException' => $baseDir . '/package/laravel/Illuminate/Exception/LogicException.php',
     'Laravel\\Illuminate\\Support\\Arr' => $baseDir . '/package/laravel/Illuminate/Support/Arr.php',
+    'Laravel\\Illuminate\\Support\\BoundMethod' => $baseDir . '/package/laravel/Illuminate/Support/BoundMethod.php',
     'Laravel\\Test\\File' => $baseDir . '/package/laravel/test/File.php',
     'Laravel\\Test\\Name' => $baseDir . '/package/laravel/test/Name.php',
+    'Symfony\\HTTPFoundation\\FileBag' => $baseDir . '/package/Symfony/http-Foundation/FileBag.php',
+    'Symfony\\HTTPFoundation\\HeaderBag' => $baseDir . '/package/Symfony/http-Foundation/HeaderBag.php',
+    'Symfony\\HTTPFoundation\\HeaderUtils' => $baseDir . '/package/Symfony/http-Foundation/HeaderUtils.php',
+    'Symfony\\HTTPFoundation\\ParameterBag' => $baseDir . '/package/Symfony/http-Foundation/ParameterBag.php',
+    'Symfony\\HTTPFoundation\\Request' => $baseDir . '/package/Symfony/http-Foundation/Request.php',
+    'Symfony\\HTTPFoundation\\ServerBag' => $baseDir . '/package/Symfony/http-Foundation/ServerBag.php',
 );

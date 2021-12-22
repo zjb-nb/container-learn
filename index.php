@@ -10,23 +10,14 @@
 require_once __DIR__."/vendor/autoload.php";
 
 
+use Symfony\HTTPFoundation\Request;
 
-class Log {
- 
-}
+$uri ="http://www.baidu.com:8080/web_path?a=1";
+$_SERVER['HTTP-cache-CONTROL']= 'max-age=300 ,public';
 
-class Test implements MyTest{
-  public function sayTest(){echo "hi\n";}
-}
-
-interface MyTest{}
-
-$test = new Test();var_dump($test);
-
-$container =  \Laravel\Illuminate\Container::getInstance();
-$container->extends(Log::class,function(){
-  return new Test();
-});
-
-var_dump( $container->make(Log::class) );
+$request = new Request($_GET,$_POST,$_COOKIE,$_SERVER,$_FILES);
+echo $request->header;
+die;
+$request = Request::create($uri,'GET',['name'=>'zjb']);
+var_dump($request->server->getHeaders());
 

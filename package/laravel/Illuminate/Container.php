@@ -52,19 +52,19 @@ class Container implements ArrayAccess {
     return $this->resolve($class,$parameter);
   }
   //判断是否被绑定过
-  public function offsetExists(mixed $offset): bool {
+  public function offsetExists( $offset): bool {
      return $this->bound($offset);
   }
 
-  public function offsetGet(mixed $offset): mixed {
+  public function offsetGet($offset) {
     return $this->make($offset);
   }
-  public function offsetSet(mixed $offset, mixed $value): void {
+  public function offsetSet( $offset,  $value):void {
     $this->bind($offset,$value instanceof Closure?$value:function ()use($value){
       return $value;
     });
   }
-  public function offsetUnset(mixed $offset): void {
+  public function offsetUnset( $offset): void {
     unset($this->bindings[$offset],$this->instances[$offset],$this->resolved[$offset] );
   }
 
@@ -323,6 +323,8 @@ class Container implements ArrayAccess {
     }
     $this->instances[$abstract] = $concrete;
   }
+
+
   //判断 abstract是否被绑定过
   protected function bound(string $abstract):bool{
     return isset($this->instances[$abstract]) || isset($this->bindings[$abstract]) ||

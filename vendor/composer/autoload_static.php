@@ -14,8 +14,15 @@ class ComposerStaticInit2b3116da4a4004b757a7ad4af95d2b78
         'Laravel\\Illuminate\\Exception\\BindException' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Exception/BindException.php',
         'Laravel\\Illuminate\\Exception\\LogicException' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Exception/LogicException.php',
         'Laravel\\Illuminate\\Support\\Arr' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Support/Arr.php',
+        'Laravel\\Illuminate\\Support\\BoundMethod' => __DIR__ . '/../..' . '/package/laravel/Illuminate/Support/BoundMethod.php',
         'Laravel\\Test\\File' => __DIR__ . '/../..' . '/package/laravel/test/File.php',
         'Laravel\\Test\\Name' => __DIR__ . '/../..' . '/package/laravel/test/Name.php',
+        'Symfony\\HTTPFoundation\\FileBag' => __DIR__ . '/../..' . '/package/Symfony/http-Foundation/FileBag.php',
+        'Symfony\\HTTPFoundation\\HeaderBag' => __DIR__ . '/../..' . '/package/Symfony/http-Foundation/HeaderBag.php',
+        'Symfony\\HTTPFoundation\\HeaderUtils' => __DIR__ . '/../..' . '/package/Symfony/http-Foundation/HeaderUtils.php',
+        'Symfony\\HTTPFoundation\\ParameterBag' => __DIR__ . '/../..' . '/package/Symfony/http-Foundation/ParameterBag.php',
+        'Symfony\\HTTPFoundation\\Request' => __DIR__ . '/../..' . '/package/Symfony/http-Foundation/Request.php',
+        'Symfony\\HTTPFoundation\\ServerBag' => __DIR__ . '/../..' . '/package/Symfony/http-Foundation/ServerBag.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
